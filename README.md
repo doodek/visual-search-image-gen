@@ -14,27 +14,53 @@ Two ways to use it:
 
 ## Quick start (macOS)
 
-1. Install Python 3 from <https://www.python.org/downloads/macos/>. The
+1. **Install Python 3** from <https://www.python.org/downloads/macos/>. The
    official installer ships with Tk, which the GUI needs. (If you already
    have Python from Homebrew and you get a "no module named tkinter" error,
    run `brew install python-tk`.)
-2. Open Terminal, `cd` to this folder, and install the two dependencies:
+
+2. **Get the code.** Either click the green "Code" button on GitHub →
+   *Download ZIP* and unzip into a folder you can find (e.g. your Desktop),
+   or `git clone` it.
+
+3. **Open Terminal and navigate to the folder.** This is the part that's
+   easy to miss if you've never used a terminal before. Open the Terminal
+   app (Cmd+Space → "Terminal" → Enter), then type:
 
    ```bash
-   python3 -m pip install Pillow numpy
+   cd ~/Desktop
+   cd visual-search-image-gen
    ```
 
-3. Launch the GUI:
+   (Replace `visual-search-image-gen` with the actual folder name if it
+   differs, and replace `~/Desktop` with wherever you put it — e.g.
+   `~/Downloads` if it's still in your Downloads folder.) After each
+   command press Enter. You can confirm you're in the right place by
+   typing `ls` — you should see `gui.py`, `script.py`, `README.md`, etc.
+
+4. **Install the dependencies (first time only):**
+
+   ```bash
+   python3 -m pip install "Pillow>=10.1" numpy
+   ```
+
+5. **Launch the GUI:**
 
    ```bash
    python3 gui.py
    ```
 
-That's it. Set parameters on the left, click **Generate** to preview, click
+> **Second run and onwards:** skip step 4. The dependencies are already
+> installed. Just open Terminal, do step 3 (`cd`), then step 5
+> (`python3 gui.py`).
+
+Set parameters on the left, click **Generate** to preview, click
 **Save Image…** to write a PNG.
 
-If you'd like a clickable launcher, save a file called `imggen.command` next
-to `gui.py` containing:
+### Optional: a double-clickable launcher
+
+If you'd rather not open Terminal each time, save a file called
+`imggen.command` next to `gui.py` containing:
 
 ```bash
 #!/bin/bash
@@ -42,17 +68,18 @@ cd "$(dirname "$0")"
 python3 gui.py
 ```
 
-then `chmod +x imggen.command`. Double-click it from Finder to start the app.
+Then in Terminal, run `chmod +x imggen.command` once. After that you can
+double-click `imggen.command` from Finder to start the app.
 
 ## Quick start (Linux / Windows)
 
-Same as above — install Python 3, `pip install Pillow numpy`, run
+Same as above — install Python 3, `pip install "Pillow>=10.1" numpy`, run
 `python3 gui.py`. Tk is bundled with the standard Python distributions.
 
 ## GUI fields
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | **Width / Height** | Output image size in pixels. |
 | **Background** | Click the swatch to pick the canvas color. |
 | **Count** | How many numbers to draw on the image (target included). |
@@ -63,8 +90,8 @@ Same as above — install Python 3, `pip install Pillow numpy`, run
 | **Color spectrum** | `RGB` = any color; `Grayscale` = shades of gray only. |
 | **Min contrast** | Minimum WCAG luminance contrast between number color and background. Default `3.0` (WCAG AA for large text) keeps every number readable. Lower = more low-contrast colors allowed. |
 | **Max cover** | Largest fraction of any one number that may be hidden by later numbers. `0.8` means each number stays at least 20% visible. `1.0` allows full occlusion. |
-| **Target cover** | Stricter cover cap for the target number itself. Default `0.2` keeps the target at least 80% visible while still letting other numbers partially overlap it. |
-| **Bold** | Switches the font to its bold variant. |
+| **Target cover** | Stricter cover cap for the target number itself. Default `0.3` keeps the target at least 70% visible while still letting other numbers partially overlap it. |
+| **Weight** | Slider from regular (0.0) to heavy (1.0). Faked via stroke thickening on the regular font; cannot go lighter than regular. Default `0.5` ≈ bold. |
 | **Seed** | Optional integer for reproducible output. Leave blank for random each click. |
 
 Below the preview there is a **Show target** toggle that highlights the
@@ -82,19 +109,19 @@ Example `config.json`:
 
 ```json
 {
-  "width": 800,
-  "height": 600,
+  "width": 1920,
+  "height": 1080,
   "color_spectrum": "rgb",
-  "font_size_range": [14, 40],
-  "count": 80,
+  "font_size_range": [56, 160],
+  "count": 300,
   "value_range": [0, 99],
   "target": 42,
   "rotation_range": [-90, 90],
   "background": [255, 255, 255],
   "min_contrast": 3.0,
   "max_cover_rate": 0.8,
-  "target_max_cover_rate": 0.2,
-  "bold": false,
+  "target_max_cover_rate": 0.3,
+  "weight": 0.5,
   "seed": null,
   "output_path": "out.png"
 }
@@ -108,9 +135,8 @@ fall back to the defaults shown.
 - **"No module named tkinter"** — Tk isn't bundled with your Python.
   On macOS, install Python from python.org, or `brew install python-tk`.
   On Debian/Ubuntu Linux, `sudo apt install python3-tk`.
-- **"font not found"** — the script uses DejaVuSans (and DejaVuSans-Bold for
-  bold mode). It's usually preinstalled. If not, install the DejaVu fonts via
-  your OS package manager.
+- **"Pillow >= 10.1 required"** — your installed Pillow is too old.
+  Run `python3 -m pip install --upgrade Pillow`.
 - **"could not sample color … with contrast"** — the requested
   `min_contrast` is too high for the spectrum + background combo. Either
   pick a darker/lighter background or lower `min_contrast`.

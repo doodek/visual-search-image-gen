@@ -80,8 +80,48 @@ class App(tk.Tk):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
 
-        form = ttk.Frame(self, padding=(18, 8, 8, 12))
-        form.grid(row=1, column=0, sticky="nw")
+        # Form column: scrollable so it works on small displays.
+        form_outer = ttk.Frame(self)
+        form_outer.grid(row=1, column=0, sticky="nsw")
+        form_outer.rowconfigure(0, weight=1)
+        form_canvas = tk.Canvas(
+            form_outer, width=380, highlightthickness=0, background="#f7f7f8",
+        )
+        form_canvas.grid(row=0, column=0, sticky="nsew")
+        form_scroll = ttk.Scrollbar(form_outer, orient="vertical", command=form_canvas.yview)
+        form_scroll.grid(row=0, column=1, sticky="ns")
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+
+        form = ttk.Frame(form_canvas, padding=(18, 8, 8, 12))
+        form_window = form_canvas.create_window((0, 0), window=form, anchor="nw")
+
+        def _on_inner_configure(_e: tk.Event) -> None:
+            form_canvas.configure(scrollregion=form_canvas.bbox("all"))
+        form.bind("<Configure>", _on_inner_configure)
+
+        def _on_canvas_configure(e: tk.Event) -> None:
+            form_canvas.itemconfigure(form_window, width=e.width)
+        form_canvas.bind("<Configure>", _on_canvas_configure)
+
+        def _on_wheel(e: tk.Event) -> None:
+            if getattr(e, "num", None) == 4:
+                form_canvas.yview_scroll(-1, "units")
+            elif getattr(e, "num", None) == 5:
+                form_canvas.yview_scroll(1, "units")
+            else:
+                step = -1 if e.delta > 0 else 1
+                form_canvas.yview_scroll(step, "units")
+        form_canvas.bind("<Enter>", lambda _e: (
+            form_canvas.bind_all("<MouseWheel>", _on_wheel),
+            form_canvas.bind_all("<Button-4>", _on_wheel),
+            form_canvas.bind_all("<Button-5>", _on_wheel),
+        ))
+        form_canvas.bind("<Leave>", lambda _e: (
+            form_canvas.unbind_all("<MouseWheel>"),
+            form_canvas.unbind_all("<Button-4>"),
+            form_canvas.unbind_all("<Button-5>"),
+        ))
+
         self._build_image_frame(form).grid(row=0, column=0, sticky="ew", pady=(0, 8))
         self._build_numbers_frame(form).grid(row=1, column=0, sticky="ew", pady=8)
         self._build_style_frame(form).grid(row=2, column=0, sticky="ew", pady=8)
@@ -122,8 +162,8 @@ class App(tk.Tk):
 
     def _build_image_frame(self, parent: tk.Widget) -> ttk.Labelframe:
         f = ttk.Labelframe(parent, text="Image")
-        self.width_var = tk.StringVar(value="800")
-        self.height_var = tk.StringVar(value="600")
+        self.width_var = tk.StringVar(value="1920")
+        self.height_var = tk.StringVar(value="1080")
         self._row_label_pair(f, 0, "Width", self.width_var)
         self._row_label_pair(f, 1, "Height", self.height_var)
         ttk.Label(f, text="Background").grid(row=2, column=0, sticky="e", padx=4, pady=4)
@@ -136,7 +176,7 @@ class App(tk.Tk):
 
     def _build_numbers_frame(self, parent: tk.Widget) -> ttk.Labelframe:
         f = ttk.Labelframe(parent, text="Numbers")
-        self.count_var = tk.StringVar(value="60")
+        self.count_var = tk.StringVar(value="300")
         self._row_label_pair(f, 0, "Count", self.count_var)
 
         self.value_min_var = tk.StringVar(value="0")
@@ -146,8 +186,8 @@ class App(tk.Tk):
         self.target_var = tk.StringVar(value="42")
         self._row_label_pair(f, 2, "Target", self.target_var)
 
-        self.size_min_var = tk.StringVar(value="14")
-        self.size_max_var = tk.StringVar(value="40")
+        self.size_min_var = tk.StringVar(value="56")
+        self.size_max_var = tk.StringVar(value="160")
         self._row_range(f, 3, "Font size", self.size_min_var, self.size_max_var)
 
         self.rot_min_var = tk.StringVar(value="-90")
@@ -172,15 +212,27 @@ class App(tk.Tk):
         ttk.Label(f, text="(fraction of any number that may be hidden, 0–1)",
                   style="Subtitle.TLabel").grid(row=3, column=1, columnspan=3, sticky="w", padx=4)
 
-        self.target_cover_var = tk.StringVar(value="0.2")
+        self.target_cover_var = tk.StringVar(value="0.3")
         self._row_label_pair(f, 4, "Target cover", self.target_cover_var)
         ttk.Label(f, text="(stricter cap for the target, 0–1)",
                   style="Subtitle.TLabel").grid(row=5, column=1, columnspan=3, sticky="w", padx=4)
 
-        self.bold_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(f, text="Bold", variable=self.bold_var).grid(
-            row=6, column=1, sticky="w", padx=4, pady=(6, 4)
+        self.weight_var = tk.DoubleVar(value=0.5)
+        ttk.Label(f, text="Weight").grid(row=6, column=0, sticky="e", padx=4, pady=(6, 0))
+        ttk.Scale(
+            f, from_=0.0, to=1.0, variable=self.weight_var,
+            orient="horizontal", length=180,
+        ).grid(row=6, column=1, columnspan=2, sticky="we", padx=4, pady=(6, 0))
+        self.weight_label_var = tk.StringVar()
+        ttk.Label(f, textvariable=self.weight_label_var, width=5).grid(
+            row=6, column=3, sticky="w", padx=4, pady=(6, 0),
         )
+        def _sync_weight_label(*_a: object) -> None:
+            self.weight_label_var.set(f"{self.weight_var.get():.2f}")
+        self.weight_var.trace_add("write", _sync_weight_label)
+        _sync_weight_label()
+        ttk.Label(f, text="(0 = regular, 1 = heavy)",
+                  style="Subtitle.TLabel").grid(row=7, column=1, columnspan=3, sticky="w", padx=4)
         return f
 
     def _build_output_frame(self, parent: tk.Widget) -> ttk.Labelframe:
@@ -240,7 +292,7 @@ class App(tk.Tk):
             min_contrast=float(self.contrast_var.get()),
             max_cover_rate=float(self.cover_var.get()),
             target_max_cover_rate=float(self.target_cover_var.get()),
-            bold=self.bold_var.get(),
+            weight=float(self.weight_var.get()),
             seed=int(seed_text) if seed_text else None,
         )
 

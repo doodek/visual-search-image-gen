@@ -37,7 +37,7 @@ target number. The script in `script.py` produces these stimulus images.
   be obscured by later placements. R9 is the special case where this limit
   is < 1.0; setting `max_cover_rate = 1.0` allows full occlusion.
 - **R14. Target cover rate.** The target has its own (typically tighter)
-  cap (`target_max_cover_rate`, default 0.2). The target's placement order is
+  cap (`target_max_cover_rate`, default 0.3). The target's placement order is
   not constrained — it may sit at any layer and may itself cover other
   numbers — but any later placement that would push the target's coverage
   past this rate is rejected. Implementation: each placed glyph carries an
@@ -56,9 +56,11 @@ target number. The script in `script.py` produces these stimulus images.
   not occur. Implemented via the WCAG relative-luminance contrast ratio with
   a configurable minimum (default 3.0, the WCAG AA threshold for large text).
   Sampling rejects colors below the threshold and retries.
-- **R12. Bold.** A boolean `bold` config switches the resolved font to its
-  bold variant. The font remains consistent across the image (R7); bold is
-  not chosen per-number.
+- **R12. Weight.** A continuous `weight` parameter (float, 0.0–1.0) controls
+  glyph thickness: 0.0 = regular, 1.0 = heavy/black. Implemented via
+  Pillow's `stroke_width` on the regular default font, so we cannot go
+  lighter than regular. Same weight applies to every number on the image
+  (R7); weight is not chosen per-number.
 
 ## Configuration Parameters
 
@@ -75,8 +77,8 @@ target number. The script in `script.py` produces these stimulus images.
 | `background`            | color        | —           | Background fill color. Default white.                                         |
 | `min_contrast`          | float        | R11         | Min WCAG luminance contrast (number vs. bg). Default `3.0`.                   |
 | `max_cover_rate`        | float        | R13         | Max fraction (0–1) of any number that may be obscured. Default `0.8`.         |
-| `target_max_cover_rate` | float        | R14         | Stricter cover cap for the target. Default `0.2`.                             |
-| `bold`                  | bool         | R12         | If true, use the bold variant of the font. Default `false`.                   |
+| `target_max_cover_rate` | float        | R14         | Stricter cover cap for the target. Default `0.3`.                             |
+| `weight`                | float        | R12         | Glyph weight, 0.0–1.0 (0 = regular, 1 = heavy). Default `0.5` ≈ bold.         |
 | `seed`                  | int / None   | —           | Optional RNG seed for reproducibility.                                        |
 | `output_path`           | str / Path   | —           | Where the generated image is written.                                         |
 

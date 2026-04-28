@@ -13,28 +13,15 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
-import PIL
 from PIL import Image, ImageDraw, ImageFont
 
 log = logging.getLogger("imggen")
-
-def _font_candidates(bold: bool) -> tuple[str, ...]:
-    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
-    return (
-        f"/usr/share/fonts/TTF/{name}",
-        f"/usr/share/fonts/truetype/dejavu/{name}",
-        f"/Library/Fonts/{name}",
-        os.path.join(os.path.dirname(PIL.__file__), "fonts", name),
-        name,
-    )
-
 
 PLACEMENT_RETRIES = 200
 ALPHA_THRESHOLD = 128
@@ -46,14 +33,19 @@ except AttributeError:
     _BICUBIC = Image.BICUBIC
 
 
-def _resolve_font(size: int, bold: bool) -> ImageFont.FreeTypeFont:
-    candidates = _font_candidates(bold)
-    for path in candidates:
-        try:
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
-    raise RuntimeError(f"font not found in any of: {candidates}")
+def _resolve_font(size: int) -> ImageFont.ImageFont:
+    """Return Pillow's built-in default TTF at the requested size.
+
+    Requires Pillow >= 10.1 (where ``load_default`` accepts ``size``).
+    """
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError as e:
+        raise RuntimeError(
+            "Pillow >= 10.1 required (older versions don't support "
+            "ImageFont.load_default(size=...)). Run: "
+            "pip install --upgrade Pillow"
+        ) from e
 
 
 def _sample_color(spectrum: str, rng: random.Random) -> tuple[int, int, int]:
@@ -102,17 +94,21 @@ def _render_glyph(
     font_size: int,
     color: tuple[int, int, int],
     rotation: float,
-    bold: bool,
+    weight: float,
 ) -> tuple[Image.Image, np.ndarray]:
-    font = _resolve_font(font_size, bold)
+    font = _resolve_font(font_size)
     text = str(value)
     left, top, right, bottom = font.getbbox(text)
-    pad = max(4, font_size // 4)
+    # Weight is emulated via Pillow's stroke_width: 0 = regular, ~1 = heavy/black.
+    stroke_w = max(0, round(font_size * weight / 6))
+    pad = max(4, font_size // 4) + stroke_w
     w = (right - left) + 2 * pad
     h = (bottom - top) + 2 * pad
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    fill = color + (255,)
     ImageDraw.Draw(img).text(
-        (-left + pad, -top + pad), text, font=font, fill=color + (255,)
+        (-left + pad, -top + pad), text, font=font, fill=fill,
+        stroke_width=stroke_w, stroke_fill=fill,
     )
     if rotation:
         img = img.rotate(rotation, expand=True, resample=_BICUBIC)
@@ -196,8 +192,8 @@ def render(
     background: Sequence[int] = (255, 255, 255),
     min_contrast: float = 3.0,
     max_cover_rate: float = 0.8,
-    target_max_cover_rate: float = 0.2,
-    bold: bool = False,
+    target_max_cover_rate: float = 0.3,
+    weight: float = 0.5,
     seed: int | None = None,
 ) -> RenderResult:
     if count < 1:
@@ -206,6 +202,8 @@ def render(
         raise ValueError("max_cover_rate must be in [0, 1]")
     if not 0.0 <= target_max_cover_rate <= 1.0:
         raise ValueError("target_max_cover_rate must be in [0, 1]")
+    if not 0.0 <= weight <= 1.0:
+        raise ValueError("weight must be in [0, 1]")
     fmin, fmax = int(font_size_range[0]), int(font_size_range[1])
     vmin, vmax = int(value_range[0]), int(value_range[1])
     rmin, rmax = float(rotation_range[0]), float(rotation_range[1])
@@ -233,7 +231,7 @@ def render(
         size = rng.randint(fmin, fmax)
         color = _pick_color(color_spectrum, bg, min_contrast, rng)
         rotation = rng.uniform(rmin, rmax)
-        rgba, mask = _render_glyph(value, size, color, rotation, bold)
+        rgba, mask = _render_glyph(value, size, color, rotation, weight)
 
         # Targets get a larger retry budget since over-covering them later is
         # bounded tighter, which can take more tries to satisfy.
