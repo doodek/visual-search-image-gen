@@ -112,9 +112,10 @@ target number. The script in `script.py` produces these stimulus images.
    - `gui.py` — Tkinter GUI for interactive use (set parameters → Generate
      → preview → Save Image…). No JSON authoring required.
    Both share the core `render()` function in `script.py`.
-9. **Font source.** The script uses a hardcoded font: `DejaVuSans.ttf` when
-   `bold` is false, `DejaVuSans-Bold.ttf` when true. Both are searched in
-   common Linux/macOS locations.
+9. **Font source.** The script uses Pillow's bundled default TrueType font
+   via `ImageFont.load_default(size=...)` (requires Pillow ≥ 10.1). No system
+   font lookup, no separate weight files; "bold/heavy" is emulated with
+   Pillow's `stroke_width` driven by the `weight` parameter (R12).
 10. **Contrast metric.** WCAG relative-luminance contrast ratio is used for
     R11. Default minimum 3.0 (WCAG AA for large text). If the spectrum +
     background combination cannot satisfy the threshold within a sampling

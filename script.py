@@ -14,9 +14,9 @@ import argparse
 import json
 import logging
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -252,7 +252,7 @@ def render(
             continue
 
         x, y, updates = result
-        for p, upd in zip(placed, updates):
+        for p, upd in zip(placed, updates, strict=True):
             if upd is not None:
                 p.visible = upd
         canvas.paste(rgba, (x, y), rgba)

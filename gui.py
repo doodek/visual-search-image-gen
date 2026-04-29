@@ -279,22 +279,22 @@ class App(tk.Tk):
 
     def _collect_params(self) -> dict:
         seed_text = self.seed_var.get().strip()
-        return dict(
-            width=int(self.width_var.get()),
-            height=int(self.height_var.get()),
-            color_spectrum=self.spectrum_var.get(),
-            font_size_range=(int(self.size_min_var.get()), int(self.size_max_var.get())),
-            count=int(self.count_var.get()),
-            value_range=(int(self.value_min_var.get()), int(self.value_max_var.get())),
-            target=int(self.target_var.get()),
-            rotation_range=(float(self.rot_min_var.get()), float(self.rot_max_var.get())),
-            background=self._bg_rgb,
-            min_contrast=float(self.contrast_var.get()),
-            max_cover_rate=float(self.cover_var.get()),
-            target_max_cover_rate=float(self.target_cover_var.get()),
-            weight=float(self.weight_var.get()),
-            seed=int(seed_text) if seed_text else None,
-        )
+        return {
+            "width": int(self.width_var.get()),
+            "height": int(self.height_var.get()),
+            "color_spectrum": self.spectrum_var.get(),
+            "font_size_range": (int(self.size_min_var.get()), int(self.size_max_var.get())),
+            "count": int(self.count_var.get()),
+            "value_range": (int(self.value_min_var.get()), int(self.value_max_var.get())),
+            "target": int(self.target_var.get()),
+            "rotation_range": (float(self.rot_min_var.get()), float(self.rot_max_var.get())),
+            "background": self._bg_rgb,
+            "min_contrast": float(self.contrast_var.get()),
+            "max_cover_rate": float(self.cover_var.get()),
+            "target_max_cover_rate": float(self.target_cover_var.get()),
+            "weight": float(self.weight_var.get()),
+            "seed": int(seed_text) if seed_text else None,
+        }
 
     def _generate(self) -> None:
         try:

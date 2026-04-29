@@ -4,13 +4,25 @@ Generate "Where's Waldo?"-style images filled with numbers for visual-search
 psychology experiments. Each image hides one configured **target** number among
 many distractors, with controllable size, color, rotation, overlap, and more.
 
-![Example output](image.png)
+![Example output](img/example.png)
 
 Two ways to use it:
 
 - **GUI** (`gui.py`) — point-and-click, live preview, Save Image button.
 - **CLI** (`script.py`) — reads a JSON config, writes a PNG. Useful for batch
   generation.
+
+## Contents
+
+- [Quick start (macOS)](#quick-start-macos)
+- [Quick start (Linux / Windows)](#quick-start-linux--windows)
+- [Using the app](#using-the-app)
+- [CLI usage](#cli-usage)
+- [Troubleshooting](#troubleshooting)
+- [Notes on academic use](#notes-on-academic-use)
+- [Files](#files)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Quick start (macOS)
 
@@ -76,23 +88,14 @@ double-click `imggen.command` from Finder to start the app.
 Same as above — install Python 3, `pip install "Pillow>=10.1" numpy`, run
 `python3 gui.py`. Tk is bundled with the standard Python distributions.
 
-## GUI fields
+## Using the app
 
-| Field | Meaning |
-| --- | --- |
-| **Width / Height** | Output image size in pixels. |
-| **Background** | Click the swatch to pick the canvas color. |
-| **Count** | How many numbers to draw on the image (target included). |
-| **Value range** | Distractor numbers are drawn uniformly from this integer range, excluding the target. |
-| **Target** | The number the participant searches for. Appears exactly once. Excluded from the value range even if it falls inside it. |
-| **Font size** | Each number's size is sampled uniformly from this min/max range. |
-| **Rotation°** | Each number is rotated by a random angle in this range. Default `-90 … 90` keeps numbers from going upside-down. |
-| **Color spectrum** | `RGB` = any color; `Grayscale` = shades of gray only. |
-| **Min contrast** | Minimum WCAG luminance contrast between number color and background. Default `3.0` (WCAG AA for large text) keeps every number readable. Lower = more low-contrast colors allowed. |
-| **Max cover** | Largest fraction of any one number that may be hidden by later numbers. `0.8` means each number stays at least 20% visible. `1.0` allows full occlusion. |
-| **Target cover** | Stricter cover cap for the target number itself. Default `0.3` keeps the target at least 70% visible while still letting other numbers partially overlap it. |
-| **Weight** | Slider from regular (0.0) to heavy (1.0). Faked via stroke thickening on the regular font; cannot go lighter than regular. Default `0.5` ≈ bold. |
-| **Seed** | Optional integer for reproducible output. Leave blank for random each click. |
+![GUI screenshot](img/screenshot.png)
+
+The form on the left is grouped into Image, Numbers, Style, and Output
+sections; tooltips and inline hints describe each field. Click **Generate**
+to render a preview, **Save Image…** to write a PNG. The form column scrolls
+if your display is short.
 
 Below the preview there is a **Show target** toggle that highlights the
 target's location with a red ring — useful when you want to verify placement
@@ -146,12 +149,69 @@ fall back to the defaults shown.
   fewer numbers than `count`. Increase the canvas, lower the count, or raise
   `max_cover_rate` to fit more in.
 
+## Notes on academic use
+
+Whether the output is suitable for a peer-reviewed study depends on how tight
+your stimulus controls need to be. Honest stocktaking:
+
+### What this tool helps with
+
+- **Reproducibility.** With a fixed `seed`, output is bit-identical — the
+  same image regenerates from the same config every time, which is what
+  pre-registration and replication need.
+- **Independently controllable parameters.** Size, color, count, rotation,
+  overlap budget, contrast, target identity, and weight all vary separately,
+  so you can hold one fixed while sweeping another.
+- **Single target, enforced.** Target uniqueness is implemented in code
+  (R10 in [REQUIREMENTS.md](REQUIREMENTS.md)), not assumed.
+- **Open source under BSD.** Inspect, fork, or extend the generator; no
+  black-box behavior, every rule lives in `script.py`.
+
+### What it doesn't do
+
+- **No per-image metadata sidecar.** The script writes the PNG only — it
+  does *not* export target pixel coordinates, per-glyph positions, or a
+  record of the parameters used. If your analysis needs that, you'll have
+  to add it.
+- **No counterbalancing or batch utilities.** Generating a balanced stimulus
+  set across conditions is your responsibility — a small shell loop over
+  seeds and configs usually does the trick.
+- **No empirical validation.** This is a generator, not a validated stimulus
+  set. There are no published norms, detection-time baselines, or
+  peer-review behind the parameter defaults.
+- **Color sampling is naive.** RGB and grayscale spectra sample uniformly
+  in their native channels; they are not isoluminant in CIE Lab. Studies
+  that control for chromatic vs. luminance contrast will need to
+  post-process colors or extend `_sample_color`.
+- **`min_contrast` is WCAG luminance contrast**, intended for text
+  readability — not a substitute for RMS or Michelson contrast metrics
+  used in vision research.
+- **`weight` is not real weight** via stroke thickening on a single regular font, not
+  a true typographic weight axis. Fine for "looks heavier"; not a faithful
+  manipulation of typographic weight as an independent variable.
+
+For pilot studies, methods classes, and exploratory work, the tool stands on
+its own. For confirmatory studies, justify your parameter choices in your
+methods section and consider extending the pipeline with the controls your
+design actually needs — or
+[open a GitHub issue](https://github.com/doodek/visual-search-image-gen/issues/new/choose)
+and I'll consider adding it.
+
 ## Files
 
 - `gui.py` — Tkinter front-end.
 - `script.py` — core renderer and CLI.
 - `REQUIREMENTS.md` — formal requirement list driving the implementation.
+- `CONTRIBUTING.md` — how to file issues and submit PRs.
+- `.github/ISSUE_TEMPLATE/` — bug report and feature request templates.
+- `img/` — example output and GUI screenshot used in this README.
 - `LICENSE` — BSD 3-Clause license.
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome. Open an issue
+or PR at <https://github.com/doodek/visual-search-image-gen/issues>; see
+[CONTRIBUTING.md](CONTRIBUTING.md) for the short version of how.
 
 ## License
 
